@@ -1,6 +1,6 @@
 ﻿using Infrastructure.Defaults;
 
-namespace IdentityService.Api.Interfaces
+namespace Infrastructure.Defaults.Services
 {
     public interface IEventPublisher
     {

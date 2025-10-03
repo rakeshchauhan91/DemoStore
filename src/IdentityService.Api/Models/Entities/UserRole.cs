@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace IdentityService.Api.Models.Entities
 {
-    public class UserRole : IEntity<Guid>
+    public class UserRole : BaseEntity<Guid>
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }

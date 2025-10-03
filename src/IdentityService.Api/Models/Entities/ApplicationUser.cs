@@ -1,25 +1,39 @@
 ﻿using Infrastructure.Defaults;
 using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
+
 
 namespace IdentityService.Api.Models.Entities
 {
-    public class ApplicationUser : IdentityUser<Guid>
+    public abstract class BaseIdentityUser<TKey> : IdentityUser<TKey>, IEntity<TKey>
+      where TKey : IEquatable<TKey>
     {
-        // IdentityUser already contains: Id (UserId), Email, PasswordHash, PhoneNumber, IsEmailVerified
+        // BaseEntity properties
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
+        public DateTime? LastSyncDt { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public bool IsActive { get; set; } = true;
+        public Guid ExternalId { get; set; } = Guid.NewGuid();
 
-        // Additional Schema Fields
-        [Required, MaxLength(50)]
+        // IEntity implementation
+        TKey IEntity<TKey>.Id
+        {
+            get => base.Id;
+            set => base.Id = value;
+        }
+    }
+
+    public class ApplicationUser : BaseIdentityUser<Guid>
+    {
         public string FirstName { get; set; } = string.Empty;
 
-        [Required, MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? LastLoginAt { get; set; }
         public bool IsEmailVerified { get; set; } = false;
-        
+
 
         // Navigation properties
         public ICollection<UserAddress> Addresses { get; set; } = new List<UserAddress>();
@@ -27,6 +41,7 @@ namespace IdentityService.Api.Models.Entities
 
         // IEntity implementation
         public Guid Id { get => base.Id; set => base.Id = value; }
+
     }
 
 }

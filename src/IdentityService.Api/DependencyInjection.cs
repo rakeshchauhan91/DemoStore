@@ -1,11 +1,11 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using IdentityService.Api.Repositories;
 using IdentityService.Api.Services;
 using Infrastructure.Defaults.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Reflection;
 
 
@@ -40,7 +40,9 @@ namespace IdentityService.Api
                 });
             });
 
-
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IUserAddressRepository, UserAddressRepository>();
+            builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork<AppIdentityDbContext>>();
 
             // ASP.NET Core Identity Configuration
@@ -89,7 +91,7 @@ namespace IdentityService.Api
 
             // builder.Services.AddSingleton<IEventPublisher, AzureServiceBusEventPublisher>(); // Mock Event Bus
             builder.Services.AddSingleton<IEventPublisher, MockEventBus>(); // Mock Event Bus
-                                                                            // --- FluentValidation Configuration ---
+             // --- FluentValidation Configuration ---
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
            

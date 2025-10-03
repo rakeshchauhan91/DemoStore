@@ -1,8 +1,9 @@
 ﻿using Azure.Messaging.ServiceBus;
-using Infrastructure.Defaults;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace IdentityService.Api.Services
+namespace Infrastructure.Defaults.Services
 {
 
     // Mock implementation for MVP. In production, this would use a real broker client.

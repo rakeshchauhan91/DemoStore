@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace IdentityService.Api.Models.Entities
 {
-    public class UserAddress : IEntity<Guid>
+    public class UserAddress : BaseEntity<Guid>
     {
         [Key]
         public Guid Id { get; set; } 

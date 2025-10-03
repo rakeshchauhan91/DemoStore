@@ -1,25 +1,27 @@
-﻿
-
-using Microsoft.EntityFrameworkCore;
+﻿using Infrastructure.Defaults.Persistence;
 
 namespace IdentityService.Api.Services
 {
 
     public class UserService : IUserService
     {
-        private readonly AppIdentityDbContext _context;
+        private readonly IUnitOfWork _uow;
+        private readonly IUserRepository _userRepository;
+        private readonly IUserAddressRepository _addressRepository;
 
-        public UserService(AppIdentityDbContext context)
+        public UserService(
+            IUnitOfWork uow,
+            IUserRepository userRepository,
+            IUserAddressRepository addressRepository)
         {
-            _context = context;
+            _uow = uow;
+            _userRepository = userRepository;
+            _addressRepository = addressRepository;
         }
 
         public async Task<UserProfileDto> GetUserProfileAsync(Guid userId)
         {
-            var user = await _context.Users
-                               .Include(u => u.UserRoles)
-                               .AsNoTracking()
-                               .SingleOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository.GetUserWithRolesAsync(userId);
 
             if (user == null)
             {
@@ -40,7 +42,8 @@ namespace IdentityService.Api.Services
 
         public async Task UpdateUserProfileAsync(Guid userId, UpdateUserProfileRequest request)
         {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository.GetByIdAsync(userId);
+
             if (user == null)
             {
                 throw new KeyNotFoundException("User not found.");
@@ -50,31 +53,30 @@ namespace IdentityService.Api.Services
             user.LastName = request.LastName ?? user.LastName;
             user.PhoneNumber = request.PhoneNumber ?? user.PhoneNumber;
 
-            await _context.SaveChangesAsync();
+            await _userRepository.UpdateAsync(user); // This will set UpdatedAt
+            await _uow.SaveChangesAsync();
         }
 
         public async Task<List<AddressDto>> GetUserAddressesAsync(Guid userId)
         {
-            var addresses = await _context.UserAddresses
-                                    .Where(ua => ua.UserId == userId)
-                                    .AsNoTracking()
-                                    .Select(ua => new AddressDto(
-                                        ua.Id,
-                                        ua.AddressLine1,
-                                        ua.AddressLine2,
-                                        ua.City,
-                                        ua.State,
-                                        ua.PostalCode,
-                                        ua.Country,
-                                        ua.IsDefault
-                                     ))
-                                    .ToListAsync();
-            return addresses;
+            var addresses = await _addressRepository.GetUserAddressesAsync(userId);
+
+            return addresses.Select(ua => new AddressDto(
+                ua.Id,
+                ua.AddressLine1,
+                ua.AddressLine2,
+                ua.City,
+                ua.State,
+                ua.PostalCode,
+                ua.Country,
+                ua.IsDefault
+            )).ToList();
         }
 
         public async Task<AddressDto> AddUserAddressAsync(Guid userId, CreateAddressRequest request)
         {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository.GetByIdAsync(userId);
+
             if (user == null)
             {
                 throw new KeyNotFoundException("User not found.");
@@ -92,25 +94,25 @@ namespace IdentityService.Api.Services
                 IsDefault = request.IsDefault
             };
 
-            _context.UserAddresses.Add(newAddress);
-            await _context.SaveChangesAsync();
+            await _addressRepository.AddAsync(newAddress);
+            await _uow.SaveChangesAsync();
 
             return new AddressDto(
-                    newAddress.Id,
-                    newAddress.AddressLine1,
-                    newAddress.AddressLine2,
-                    newAddress.City,
-                    newAddress.State,
-                    newAddress.PostalCode,
-                    newAddress.Country,
-                    newAddress.IsDefault
-                    );
-
+                newAddress.Id,
+                newAddress.AddressLine1,
+                newAddress.AddressLine2,
+                newAddress.City,
+                newAddress.State,
+                newAddress.PostalCode,
+                newAddress.Country,
+                newAddress.IsDefault
+            );
         }
 
         public async Task UpdateUserAddressAsync(Guid userId, Guid addressId, UpdateAddressRequest request)
         {
-            var address = await _context.UserAddresses.SingleOrDefaultAsync(ua => ua.UserId == userId && ua.Id == addressId);
+            var address = await _addressRepository.GetUserAddressByIdAsync(userId, addressId);
+
             if (address == null)
             {
                 throw new KeyNotFoundException("Address not found or does not belong to user.");
@@ -124,19 +126,21 @@ namespace IdentityService.Api.Services
             address.Country = request.Country ?? address.Country;
             address.IsDefault = request.IsDefault;
 
-            await _context.SaveChangesAsync();
+            await _addressRepository.UpdateAsync(address);
+            await _uow.SaveChangesAsync();
         }
 
         public async Task DeleteUserAddressAsync(Guid userId, Guid addressId)
         {
-            var address = await _context.UserAddresses.SingleOrDefaultAsync(ua => ua.UserId == userId && ua.Id == addressId);
+            var address = await _addressRepository.GetUserAddressByIdAsync(userId, addressId);
+
             if (address == null)
             {
                 throw new KeyNotFoundException("Address not found or does not belong to user.");
             }
 
-            _context.UserAddresses.Remove(address);
-            await _context.SaveChangesAsync();
+          //  await _addressRepository.SoftDeleteAsync(addressId);
+            await _uow.SaveChangesAsync();
         }
     }
 }

@@ -219,12 +219,25 @@ namespace Infrastructure.Defaults.Persistence
         {
             return await _dbSet.AnyAsync(filter, cancellationToken);
         }
+        private bool HasProperty(object obj, string propertyName)
+        {
+            return obj.GetType().GetProperty(propertyName) != null;
+        }
 
+        private void SetPropertyValue(object obj, string propertyName, object value)
+        {
+            var property = obj.GetType().GetProperty(propertyName);
+            property?.SetValue(obj, value);
+        }
         public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
             if (entity is BaseEntity<TKey> baseEntity)
             {
                 baseEntity.CreatedAt = DateTime.UtcNow;
+            }
+            else if (HasProperty(entity, "CreatedAt"))
+            {
+                SetPropertyValue(entity, "CreatedAt", DateTime.UtcNow);
             }
 
             var result = await _dbSet.AddAsync(entity, cancellationToken);
