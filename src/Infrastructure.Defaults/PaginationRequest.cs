@@ -7,5 +7,11 @@ namespace Infrastructure.Defaults
         public int PageSize { get; set; } = 10;
         public string? SortField { get; set; }
         public bool SortDescending { get; set; } = false;
+        public PaginationRequest(int page, int pageSize)
+        {   
+            Page = page;    
+            PageSize = pageSize;
+                
+        }
     }
 }

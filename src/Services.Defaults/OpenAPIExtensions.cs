@@ -53,69 +53,43 @@ namespace Services.Defaults
 
             services.AddSwaggerGen(options =>
             {
-                options.SwaggerDoc("v1", new OpenApiInfo
+
+                var document = openApi.GetRequiredSection("Document");
+
+                var version = document.GetRequiredValue("Version") ?? "v1";
+
+                options.SwaggerDoc(version, new OpenApiInfo
                 {
-                    Title = "Identity Service API",
-                    Version = "v1",
-                    Description = " Identity Service Microservice"
+                    Title = document.GetRequiredValue("Title"),
+                    Version = version,
+                    Description = document.GetRequiredValue("Description")
                 });
-                
-                
-                /// {
-                   ///   "OpenApi": {
-                   ///     "Document": {
-                   ///         "Title": ..
-                   ///         "Version": ..
-                   ///         "Description": ..
-                   ///     }
-                   ///   }
-                   /// }
-                //var document = openApi.GetRequiredSection("Document");
 
-                //var version = document.GetRequiredValue("Version") ?? "v1";
+                var identitySection = configuration.GetSection("Identity");
 
-                //options.SwaggerDoc(version, new OpenApiInfo
-                //{
-                //    Title = document.GetRequiredValue("Title"),
-                //    Version = version,
-                //    Description = document.GetRequiredValue("Description")
-                //});
+                if (!identitySection.Exists())
+                {
+                    // No identity section, so no authentication open api definition
+                    return;
+                }
+                var identityUrlExternal = identitySection.GetRequiredValue("Url");
+                var scopes = identitySection.GetRequiredSection("Scopes").GetChildren().ToDictionary(p => p.Key, p => p.Value);
 
-                //var identitySection = configuration.GetSection("Identity");
-
-                //if (!identitySection.Exists())
-                //{
-                //    // No identity section, so no authentication open api definition
-                //    return;
-                //}
-
-                // {
-                //   "Identity": {
-                //     "Url": "http://identity",
-                //     "Scopes": {
-                //         "basket": "Basket API"
-                //      }
-                //    }
-                // }
-
-                //var identityUrlExternal = identitySection.GetRequiredValue("Url");
-                //var scopes = identitySection.GetRequiredSection("Scopes").GetChildren().ToDictionary(p => p.Key, p => p.Value);
-
-                //options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
-                //{
-                //    Type = SecuritySchemeType.OAuth2,
-                //    Flows = new OpenApiOAuthFlows()
-                //    {
-                //        // TODO: Change this to use Authorization Code flow with PKCE
-                //        Implicit = new OpenApiOAuthFlow()
-                //        {
-                //            AuthorizationUrl = new Uri($"{identityUrlExternal}/connect/authorize"),
-                //            TokenUrl = new Uri($"{identityUrlExternal}/connect/token"),
-                //            Scopes = scopes,
-                //        }
-                //    }
-                //});
-                //   options.OperationFilter<AuthorizeCheckOperationFilter>(scopes.Keys.ToArray());
+                options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.OAuth2,
+                    Flows = new OpenApiOAuthFlows()
+                    {
+                        // TODO: Change this to use Authorization Code flow with PKCE
+                        Implicit = new OpenApiOAuthFlow()
+                        {
+                            AuthorizationUrl = new Uri($"{identityUrlExternal}/connect/authorize"),
+                            TokenUrl = new Uri($"{identityUrlExternal}/connect/token"),
+                            Scopes = scopes,
+                        }
+                    }
+                });
+                options.OperationFilter<AuthorizeCheckOperationFilter>(scopes.Keys.ToArray());
 
             });
 
