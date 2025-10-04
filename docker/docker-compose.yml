@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+
+  # Redis for distributed caching
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # RabbitMQ for message queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - microservices-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # IdentityServer API
+  identityserver:
+    build:
+      context: .
+      dockerfile: src/IdentityServer.API/Dockerfile
+    container_name: identityserver
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=IdentityServerDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+      - ConnectionStrings__ConfigurationDbConnection=Server=sqlserver;Database=IdentityServerConfigurationDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+      - ConnectionStrings__PersistedGrantDbConnection=Server=sqlserver;Database=IdentityServerPersistedGrantDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+      - Redis__Configuration=redis:6379
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "5001:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Product Catalog API
+  productcatalog:
+    build:
+      context: .
+      dockerfile: src/ProductCatalog.API/Dockerfile
+    container_name: productcatalog
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ProductCatalogDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+      - IdentityServer__Authority=http://identityserver:80
+      - IdentityServer__RequireHttpsMetadata=false
+      - Redis__Configuration=redis:6379
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "5002:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      identityserver:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+       
+
+  # API Gateway (NGINX)
+  gateway:
+    image: nginx:alpine
+    container_name: gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - identityserver
+      - productcatalog
+      - ordermanagement
+      - payment
+      - notification
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  rabbitmq-data:

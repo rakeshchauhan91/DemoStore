@@ -11,6 +11,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Services.Defaults", "src\Se
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogService.Api", "src\CatalogService.Api\CatalogService.Api.csproj", "{364D2ACF-C3B0-49E2-816D-29AE85D88FA6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Local", "Local", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		docker\docker-compose.yml = docker\docker-compose.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{877E126C-3B5D-4504-82A0-A9A9244F22E6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "K8s", "K8s", "{F484694C-EB0E-4FBF-941F-D04A9BAD05F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +47,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F83E4078-3A45-CF77-39BE-D1AFB4D3EC10} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{B41E0FA3-39CA-84A8-6490-4839F3940B9B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D} = {877E126C-3B5D-4504-82A0-A9A9244F22E6}
+		{F484694C-EB0E-4FBF-941F-D04A9BAD05F1} = {877E126C-3B5D-4504-82A0-A9A9244F22E6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7D45ACA1-315C-4FC1-89DB-5164EDED487A}

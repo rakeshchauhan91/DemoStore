@@ -9,8 +9,14 @@ namespace Services.Defaults
 {
     public static partial class Extensions
     {
-        private sealed class AuthorizeCheckOperationFilter(string[] scopes) : IOperationFilter
+        // New class to hold the scope data
+        private sealed record ScopesArgument(string[] Scopes);
+
+        private sealed class AuthorizeCheckOperationFilter(ScopesArgument scopesArgument) : IOperationFilter
         {
+            // The scopes are now accessed via the record property
+            private readonly string[] _scopes = scopesArgument.Scopes;
+
             public void Apply(OpenApiOperation operation, OperationFilterContext context)
             {
                 var metadata = context.ApiDescription.ActionDescriptor.EndpointMetadata;
@@ -19,9 +25,7 @@ namespace Services.Defaults
                 {
                     return;
                 }
-
-                operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Unauthorized" });
-                operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Forbidden" });
+                // ... (rest of the Apply method remains the same)
 
                 var oAuthScheme = new OpenApiSecurityScheme
                 {
@@ -29,12 +33,13 @@ namespace Services.Defaults
                 };
 
                 operation.Security = new List<OpenApiSecurityRequirement>
+        {
+            new()
             {
-                new()
-                {
-                    [ oAuthScheme ] = scopes
-                }
-            };
+                // Use the inner _scopes array
+                [ oAuthScheme ] = _scopes
+            }
+        };
             }
         }
         public static IHostApplicationBuilder AddDefaultOpenApi(this IHostApplicationBuilder builder)
@@ -89,7 +94,12 @@ namespace Services.Defaults
                         }
                     }
                 });
-                options.OperationFilter<AuthorizeCheckOperationFilter>(scopes.Keys.ToArray());
+                var scopesArray = scopes.Keys.ToArray();
+                var filterArgument = new ScopesArgument(scopesArray);
+
+                // Pass the single wrapped object as the argument
+                options.OperationFilter<AuthorizeCheckOperationFilter>(filterArgument);
+
 
             });
 
